@@ -1,21 +1,31 @@
 <!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><title>Admin prenotazioni</title><link rel="stylesheet" href="style.css"></head>
+<meta name="robots" content="noindex"><title>Admin prenotazioni</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
 <body><main><h1>Prenotazioni</h1><div id="list"></div>
 <script>
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let data = [];
 async function call(method, id) {
   const r = await fetch('/api/admin' + (id ? '?id=' + id : ''), { method, headers: { 'x-password': sessionStorage.getItem('pw') || '' } });
   if (r.status === 401) { const p = prompt('Password admin:'); if (!p) return null; sessionStorage.setItem('pw', p); return call(method, id); }
   return r.json();
 }
+function wa(b) {
+  const raw = (b.phone || '').trim(); let d = raw.replace(/\D/g, '');
+  if (raw.startsWith('+')) {} else if (d.startsWith('00')) d = d.slice(2); else if (!(d.startsWith('39') && d.length >= 11)) d = '39' + d;
+  const link = `${location.origin}/gestisci.html?c=${b.token}`;
+  const txt = `Ciao ${b.name}, confermiamo il tuo appuntamento (${b.service || 'servizio'}) il ${b.date} alle ${b.time}. Per annullare o spostare (fino a 24 ore prima): ${link}`;
+  window.open(`https://wa.me/${d}?text=${encodeURIComponent(txt)}`, '_blank');
+}
 async function load() {
-  const data = await call('GET');
-  if (!Array.isArray(data)) return;
-  document.querySelector('#list').innerHTML = data.map(b => `
+  const r = await call('GET'); if (!Array.isArray(r)) return; data = r;
+  document.querySelector('#list').innerHTML = data.map((b, i) => `
     <div class="card row"><div><strong>${esc(b.date)} ${esc(b.time)}</strong> — ${esc(b.name)}
-    <div class="muted">${esc(b.email)} ${esc(b.phone)}<br>${esc(b.notes)}</div></div>
-    <button onclick="del('${esc(b.id)}')">Annulla</button></div>`).join('') || '<p class="muted">Nessuna prenotazione futura.</p>';
+      <div class="muted">${esc(b.service)} · ${esc(b.phone)}<br>${esc(b.notes)}</div></div>
+      <div class="acts"><button class="btn wa" onclick="wa(data[${i}])">WhatsApp</button>
+      <button class="red" onclick="del('${esc(b.id)}')">Annulla</button></div></div>`).join('') || '<p class="muted">Nessuna prenotazione futura.</p>';
 }
 async function del(id) { if (confirm('Annullare questa prenotazione?')) { await call('DELETE', id); load(); } }
 load();

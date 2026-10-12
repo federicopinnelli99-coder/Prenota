@@ -1,18 +1,24 @@
 <!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prenota un appuntamento</title><link rel="stylesheet" href="style.css"></head>
+<title>Barber Shop · Prenota</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
 <body><main>
-<h1>Prenota un appuntamento</h1>
+<h1>✂ Barber Shop</h1>
+<p class="sub">Taglio · Barba · Stile — Prenota il tuo posto</p>
 <div class="card" id="step1">
-  <label>1. Scegli il giorno <input type="date" id="date"></label>
+  <label for="service">1. Servizio</label>
+  <select id="service"><option>Taglio</option><option>Barba</option><option>Taglio + Barba</option></select>
+  <label for="date">2. Giorno</label>
+  <input type="date" id="date">
   <div id="slots" class="muted">Seleziona una data per vedere gli orari liberi.</div>
 </div>
 <div class="card" id="step2" hidden>
-  <p>2. I tuoi dati — <strong id="chosen"></strong></p>
+  <p>3. I tuoi dati — <strong id="chosen"></strong></p>
   <input id="name" placeholder="Nome e cognome *" autocomplete="name">
-  <input id="email" type="email" placeholder="Email *" autocomplete="email">
-  <input id="phone" type="tel" placeholder="Telefono" autocomplete="tel">
-  <textarea id="notes" rows="3" placeholder="Note (facoltative)"></textarea>
+  <input id="phone" type="tel" placeholder="Telefono (WhatsApp) *" autocomplete="tel">
+  <input id="email" type="email" placeholder="Email (facoltativa)" autocomplete="email">
+  <textarea id="notes" rows="2" placeholder="Note (facoltative)"></textarea>
   <button id="send">Conferma prenotazione</button>
   <p id="msg" class="muted"></p>
 </div>
@@ -21,12 +27,9 @@ const $ = s => document.querySelector(s);
 let time = null;
 const d = $('#date');
 const t = new Date(); d.min = new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-
 d.onchange = async () => {
-  time = null; $('#step2').hidden = true;
-  $('#slots').textContent = 'Carico...';
-  const r = await fetch('/api/slots?date=' + d.value);
-  const free = await r.json();
+  time = null; $('#step2').hidden = true; $('#slots').textContent = 'Carico...';
+  const free = await (await fetch('/api/slots?date=' + d.value)).json();
   $('#slots').innerHTML = '';
   if (!Array.isArray(free) || !free.length) { $('#slots').textContent = 'Nessun orario disponibile in questo giorno.'; return; }
   free.forEach(h => {
@@ -39,9 +42,15 @@ d.onchange = async () => {
 $('#send').onclick = async () => {
   $('#msg').textContent = 'Invio...';
   const r = await fetch('/api/book', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date: d.value, time, name: $('#name').value, email: $('#email').value, phone: $('#phone').value, notes: $('#notes').value }) });
+    body: JSON.stringify({ date: d.value, time, service: $('#service').value, name: $('#name').value,
+      phone: $('#phone').value, email: $('#email').value, notes: $('#notes').value }) });
   const j = await r.json();
-  if (r.ok) { $('#step1').hidden = true; $('#step2').innerHTML = `<h2>✅ Prenotazione confermata</h2><p>${d.value} alle ${time}. Grazie!</p>`; }
-  else { $('#msg').textContent = j.error; if (r.status === 409) d.onchange(); }
+  if (r.ok) {
+    const link = `${location.origin}/gestisci.html?c=${j.token}`;
+    $('#step1').hidden = true;
+    $('#step2').innerHTML = `<h2>✔ Prenotazione ricevuta</h2><p style="text-align:center">${d.value} alle ${time}<br>Ti aspettiamo!</p>
+      <p class="muted">Per annullare o spostare l'appuntamento (fino a 24 ore prima) salva questo link personale:</p>
+      <a class="btn" href="${link}">Gestisci prenotazione</a>`;
+  } else { $('#msg').textContent = j.error; if (r.status === 409) d.onchange(); }
 };
 </script></main></body></html>

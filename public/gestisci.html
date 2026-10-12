@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Gestisci prenotazione</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head>
+<body><main><h1>✂ La tua prenotazione</h1><div class="card" id="box">Carico...</div>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const c = new URLSearchParams(location.search).get('c');
+const box = document.querySelector('#box');
+async function load() {
+  const r = await fetch('/api/manage?c=' + encodeURIComponent(c)); const b = await r.json();
+  if (!r.ok) { box.innerHTML = `<p>${esc(b.error)}</p><a class="btn" href="/">Prenota un nuovo appuntamento</a>`; return; }
+  box.innerHTML = `<p><strong>${esc(b.name)}</strong><br>${esc(b.service || '')}<br>${esc(b.date)} alle ${esc(b.time)}</p>` +
+    (b.canCancel
+      ? `<button class="red" onclick="cancel()">Annulla appuntamento</button><a class="btn" href="/" onclick="return confirm('Per cambiare orario devi prima annullare questo appuntamento. Vuoi andare alla pagina di prenotazione?')">Cambia orario</a>`
+      : `<p class="muted">Mancano meno di ${b.cancelHours} ore: non è più possibile annullare online. Contattaci direttamente.</p>`);
+}
+async function cancel() {
+  if (!confirm('Annullare davvero l\'appuntamento?')) return;
+  const r = await fetch('/api/manage?c=' + encodeURIComponent(c), { method: 'DELETE' }); const j = await r.json();
+  box.innerHTML = r.ok ? '<h2>Appuntamento annullato</h2><a class="btn" href="/">Prenota un nuovo orario</a>' : `<p>${esc(j.error)}</p>`;
+}
+load();
+</script></main></body></html>
