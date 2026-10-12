@@ -1,0 +1,14 @@
+:root{--bg:#f6f8fb;--fg:#1c2430;--card:#fff;--ac:#2f6fed;--line:#dbe2ec}
+@media(prefers-color-scheme:dark){:root{--bg:#131a24;--fg:#e8edf4;--card:#1c2634;--line:#32404f}}
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);margin:0;padding:1rem}
+main{max-width:520px;margin:2rem auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem;margin-bottom:1rem}
+input,textarea,button{font:inherit;padding:.6rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%;margin:.25rem 0}
+button{background:var(--ac);color:#fff;border:0;cursor:pointer}
+#slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.4rem;margin:.6rem 0}
+#slots button{background:var(--card);color:var(--fg);border:1px solid var(--line);width:auto}
+#slots button.sel{background:var(--ac);color:#fff}
+.muted{opacity:.7;font-size:.9rem}
+.row{display:flex;justify-content:space-between;gap:1rem;align-items:center}
+.row button{width:auto;background:#c0392b;padding:.3rem .7rem}

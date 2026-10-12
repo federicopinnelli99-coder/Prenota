@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prenota un appuntamento</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<h1>Prenota un appuntamento</h1>
+<div class="card" id="step1">
+  <label>1. Scegli il giorno <input type="date" id="date"></label>
+  <div id="slots" class="muted">Seleziona una data per vedere gli orari liberi.</div>
+</div>
+<div class="card" id="step2" hidden>
+  <p>2. I tuoi dati — <strong id="chosen"></strong></p>
+  <input id="name" placeholder="Nome e cognome *" autocomplete="name">
+  <input id="email" type="email" placeholder="Email *" autocomplete="email">
+  <input id="phone" type="tel" placeholder="Telefono" autocomplete="tel">
+  <textarea id="notes" rows="3" placeholder="Note (facoltative)"></textarea>
+  <button id="send">Conferma prenotazione</button>
+  <p id="msg" class="muted"></p>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+let time = null;
+const d = $('#date');
+const t = new Date(); d.min = new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+
+d.onchange = async () => {
+  time = null; $('#step2').hidden = true;
+  $('#slots').textContent = 'Carico...';
+  const r = await fetch('/api/slots?date=' + d.value);
+  const free = await r.json();
+  $('#slots').innerHTML = '';
+  if (!Array.isArray(free) || !free.length) { $('#slots').textContent = 'Nessun orario disponibile in questo giorno.'; return; }
+  free.forEach(h => {
+    const b = document.createElement('button'); b.textContent = h;
+    b.onclick = () => { time = h; document.querySelectorAll('#slots button').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); $('#chosen').textContent = `${d.value} alle ${h}`; $('#step2').hidden = false; };
+    $('#slots').appendChild(b);
+  });
+};
+$('#send').onclick = async () => {
+  $('#msg').textContent = 'Invio...';
+  const r = await fetch('/api/book', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: d.value, time, name: $('#name').value, email: $('#email').value, phone: $('#phone').value, notes: $('#notes').value }) });
+  const j = await r.json();
+  if (r.ok) { $('#step1').hidden = true; $('#step2').innerHTML = `<h2>✅ Prenotazione confermata</h2><p>${d.value} alle ${time}. Grazie!</p>`; }
+  else { $('#msg').textContent = j.error; if (r.status === 409) d.onchange(); }
+};
+</script></main></body></html>
